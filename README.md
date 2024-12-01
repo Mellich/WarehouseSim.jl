@@ -33,4 +33,3 @@ using Logging
 disable_logging(LogLevel(Logging.Info))
 ```
 
-The function returns a DataFrame with input parameters and performance metrics tht can be used for further processing.
