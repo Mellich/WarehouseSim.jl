@@ -8,6 +8,13 @@ using ResumableFunctions
 using Statistics
 using Base: put!, take!, length
 
+"""
+Represents a shipment in the warehouse simulation.
+
+Stores information to calculate different statistics
+about waiting and processing time after the end of the 
+simulation.
+"""
 mutable struct Shipment
     arrival_time::Float64
     start_processing::Float64
@@ -19,6 +26,10 @@ mutable struct Shipment
     Shipment(arrival_time) = new(arrival_time, 0, 0)
 end
 
+"""
+Represents a worker in the simulation that processes
+shipments from the different queues.
+"""
 mutable struct Worker
     sim::Simulation
     working_time::Float64
@@ -31,6 +42,11 @@ mutable struct Worker
     end
 end
 
+"""
+Finalize the statistics of a Worker.
+
+Required to correctl count incomplete shipment processing in statistics.
+"""
 function finalize!(w::Worker)
     if !isnothing(w.current_shipment)
         w.working_time += now(w.sim) - w.current_shipment.start_processing
@@ -67,9 +83,34 @@ mutable struct ShipmentQueue
         QueueStore{Shipment}(sim), Store{Shipment}(sim))
 end
 
+"""
+    is_full(q::ShipmentQueue) 
+
+Returns true, if a ShipmentQueue is full because it reached `Q_max`
+shipments.
+"""
 is_full(q::ShipmentQueue) = q.shipments.load >= q.Q_max
+
+"""
+    is_empty(q::ShipmentQueue) 
+    
+Returns true, if a ShipmentQueue is empty.
+"""
 is_empty(q::ShipmentQueue) = q.shipments.load == 0
+
+"""
+    length(q::ShipmentQueue) 
+    
+Returns the number of shipments currently in the queue.
+"""
 Base.length(q::ShipmentQueue) = q.shipments.load
+
+"""
+    put!(q::ShipmentQueue, s::Shipment)
+
+Put a new shipment to the ShipmentQueue.
+Throws an error if the ShipmentQueue is full.
+"""
 function Base.put!(q::ShipmentQueue, s::Shipment)
     if !is_full(q)
         if is_empty(q)
@@ -82,6 +123,14 @@ function Base.put!(q::ShipmentQueue, s::Shipment)
         throw("Can't put $s. ShipmentQueue is full!")
     end
 end
+
+"""
+    take!(q::ShipmentQueue)
+
+Takes a shipment from the ShipmentQueue.
+If not shipment is available, it will block until a new 
+shipment is put into the queue.
+"""
 function Base.take!(q::ShipmentQueue)
     if is_full(q)
         q.full_time += now(q.sim) - q.full_start_time
@@ -93,6 +142,14 @@ function Base.take!(q::ShipmentQueue)
     end
     s
 end
+
+"""
+    finalize!(q::ShipmentQueue)
+
+Finalize the statistics of a ShipmentQueue.
+
+Required to correctl count incomplete shipment processing in statistics.
+"""
 function finalize!(q::ShipmentQueue)
     if q.empty_start_time >= 0
         q.empty_time += now(q.sim) - q.empty_start_time
@@ -118,11 +175,25 @@ struct WarehouseState
     end
 end
 
+"""
+    finalize!(state::WarehouseState)
+
+Finalize the statistics of a WarehouseState.
+
+Required to correctl count incomplete shipment processing in statistics.
+"""
 function finalize!(state::WarehouseState)
     finalize!(state.grocery_queue)
     finalize!(state.frozen_queue)
 end
 
+"""
+    arrival_process(sim::Simulation, warehouse_state::WarehouseState,
+                    queue::ShipmentQueue)
+
+Simulation process used to simulate shipment arrivals for 
+warehouse queues.
+"""
 @resumable function arrival_process(sim::Simulation, warehouse_state::WarehouseState,
     queue::ShipmentQueue)
     while true
@@ -140,6 +211,12 @@ end
     end
 end
 
+"""
+    worker_process(sim::Simulation, warehouse_state::WarehouseState,
+                    worker::Worker, p_g, p_f)
+
+Simulation process used to simulate worker behavior
+"""
 @resumable function worker_process(sim::Simulation, warehouse_state::WarehouseState, worker::Worker, p_g, p_f)
     while true
         @info "T $(now(sim)): $worker waits for items"
@@ -178,6 +255,8 @@ provided configuration for a given duration.
 - Q_f: queue size for frozen goods
 - n: number of workers processing the items one at a time
 - duration: duration of the simulation
+
+Returns a DataFrame with the used configuration and selected KPIs.
 
 """
 function simulate_warehouse_queue(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)

@@ -3,6 +3,9 @@ using WarehouseSim
 using DataFrames
 using ConcurrentSim
 
+"""
+Test basic functionality of Shipment data structure
+"""
 @testset "Shipment" begin
     s = Shipment(2.0)
     @test s.arrival_time == 2.0
@@ -10,6 +13,9 @@ using ConcurrentSim
     @test s.end_processing == 0.0
 end
 
+"""
+Test basic functionality of ShipmentQueue
+"""
 @testset "ShipmentQueue" begin
     sim = Simulation()
     s = ShipmentQueue(sim, 2.0, 5)
@@ -33,6 +39,10 @@ end
     @test length(s) == 4
 end
 
+"""
+Simple test run of simulation and basic sanity checks
+of output data.
+"""
 @testset "Simulation" begin
     df = simulate_warehouse_queue(1, 1, 1, 1, 10, 10, 2, 20)
     @test typeof(df) == DataFrame
