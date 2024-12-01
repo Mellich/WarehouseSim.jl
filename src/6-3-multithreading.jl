@@ -56,11 +56,59 @@ function simulate_parametrized(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
 end
 
 """
-    visualize(df::DataFrame)
+    visualize_table(df::DataFrame)
 
-Create a window with a sortable table from a DataFrame
+Create a window with a sortable table from a DataFrame.
 """
-function visualize(df::DataFrame)
+function visualize_table(df::DataFrame)
     w = Blink.Window()
     body!(w, showtable(df))
+end
+
+"""
+    visualize_plot(df::DataFrame)
+
+Create a window with scatter plot and selectable columns for the axis.
+"""
+function visualize_plot(df::DataFrame)
+    fig = Figure()
+
+    # Create some menus to select columns for X and Y axis
+    x_content = Menu(fig, options=names(df), default=first(names(df)))
+    y_content = Menu(fig, options=names(df), default=last(names(df)))
+    fig[1, 1] = vgrid!(
+        Label(fig, "X-Axis", width=nothing),
+        x_content,
+        Label(fig, "Y-Axis", width=nothing),
+        y_content;
+        tellheight=false, width=200)
+
+    # Use Observables to update plot
+    x_col = Observable{String}(first(names(df)))
+    y_col = Observable{String}(last(names(df)))
+
+    ax = Axis(fig[1, 2], xlabel=x_col, ylabel=y_col)
+
+    # Update x and y values on selection
+    x_vals = lift(x_col) do v
+        Float64.(df[!, v])
+    end
+    y_vals = lift(y_col) do v
+        Float64.(df[!, v])
+    end
+
+    scatter!(ax, x_vals, y_vals)
+
+    # Trigger selection and auto scaling of plot
+    on(x_content.selection) do x_c
+        x_col[] = x_c
+        autolimits!(ax)
+    end
+    notify(x_content.selection)
+    on(y_content.selection) do y_c
+        y_col[] = y_c
+        autolimits!(ax)
+    end
+    notify(y_content.selection)
+    fig
 end
