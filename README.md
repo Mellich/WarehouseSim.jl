@@ -25,11 +25,21 @@ using WarehouseSim
 df = simulate_warehouse_queue(1.0, 1.0, 2.0, 0.5, 20, 20, 2, 100)
 ```
 
-To set the loglevel or disable logging, the `Logging` package can be used:
+## Multi-Threaded execution and Visualization
+
+For the multithreaded execution and the visualization of simulation results, look at `6-3-multithreading.jl`.
+
+Parametrized execution of the simulation can be done through `simulate_parametrized(...)`.
+The returned DataFrame can be inspected and visualized using the following two options:
+
+- a interactive table view via `visualize_table(df)`
+- a 2D scatter plot with selectable axis via `visualize_plot(df)`
+
+Executing parametrized simulation runs using multiple threads and direct visualization can i.e. 
+be achieved like this:
 
 ```{julia}
-using Logging
-
-disable_logging(LogLevel(Logging.Info))
+using WarehouseSim
+visualize_plot(simulate_parametrized([0.5, 4, 2], 4, 1, 2, 10, 100, 8, 100:200))
 ```
 
