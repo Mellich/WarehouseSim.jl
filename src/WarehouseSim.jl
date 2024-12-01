@@ -1,11 +1,13 @@
 module WarehouseSim
 
+using Blink
 using ConcurrentSim
 using DataFrames
 using Distributions
 using Logging
 using ResumableFunctions
 using Statistics
+using TableView
 using Base: iterate, put!, take!, length
 
 # Disable logging output

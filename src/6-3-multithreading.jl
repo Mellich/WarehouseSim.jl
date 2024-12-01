@@ -54,3 +54,13 @@ function simulate_parametrized(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
     # Reduce collected data to single DataFrame after all threads have completed
     reduce(vcat, df_threads)
 end
+
+"""
+    visualize(df::DataFrame)
+
+Create a window with a sortable table from a DataFrame
+"""
+function visualize(df::DataFrame)
+    w = Blink.Window()
+    body!(w, showtable(df))
+end
