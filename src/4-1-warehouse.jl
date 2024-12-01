@@ -111,7 +111,7 @@ Throws an error if the ShipmentQueue is full.
 function Base.put!(q::ShipmentQueue, s::Shipment)
     if !isfull(q)
         if isempty(q)
-            @info "$(now(q.sim)) Something in there again"
+            @debug "$(now(q.sim)) Something in there again"
             q.empty_time += now(q.sim) - q.empty_start_time
             q.empty_start_time = -1.0
         end
@@ -138,12 +138,12 @@ shipment is put into the queue.
 function Base.take!(q::ShipmentQueue)
     if isfull(q)
         q.full_time += now(q.sim) - q.full_start_time
-        @info "$(now(q.sim)) Not full again $(q.full_time)"
+        @debug "$(now(q.sim)) Not full again $(q.full_time)"
         q.full_start_time = -1.0
     end
     s = take!(q.shipments)
     if isempty(q)
-        @info "$(now(q.sim)) Empty again"
+        @debug "$(now(q.sim)) Empty again"
         q.empty_start_time = now(q.sim)
     end
     s
@@ -207,11 +207,11 @@ warehouse queues.
         @yield timeout(sim, next_arrival)
         new_shipment = Shipment(now(sim))
         try
-            @info "T $(now(sim)): $new_shipment arrived in $queue"
+            @debug "T $(now(sim)): $new_shipment arrived in $queue"
             put!(queue, new_shipment)
             put!(warehouse_state.avaliable_shipments, nothing)
         catch e
-            @info "T $(now(sim)): $new_shipment rejected: $e"
+            @debug "T $(now(sim)): $new_shipment rejected: $e"
             if typeof(e) == MethodError
                 throw(e)
             end
@@ -227,10 +227,10 @@ Simulation process used to simulate worker behavior
 """
 @resumable function worker_process(sim::Simulation, warehouse_state::WarehouseState, worker::Worker, p_g, p_f)
     while true
-        @info "T $(now(sim)): $worker waits for items"
+        @debug "T $(now(sim)): $worker waits for items"
         @yield take!(warehouse_state.avaliable_shipments)
         start_time = now(sim)
-        @info "T $(now(sim)): $worker starts processing"
+        @debug "T $(now(sim)): $worker starts processing"
         if (length(warehouse_state.grocery_queue) > length(warehouse_state.frozen_queue))
             worker.current_shipment = @yield take!(warehouse_state.grocery_queue)
             worker.current_shipment.start_processing = now(sim)
@@ -271,16 +271,16 @@ function simulate_warehouse_queue(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
     sim = Simulation()
     state = WarehouseState(sim, λ_g, λ_f, Q_g, Q_f)
     workers = [Worker(sim, state, p_g, p_f) for _ in 1:n]
-    @info "Start Simulation"
+    @debug "Start Simulation"
     run(sim, duration)
     finalize!.(workers)
     finalize!(state)
     DataFrame(Dict("λ_g" => [λ_g], "λ_f" => [λ_f], "Q_g" => [Q_g], "Q_f" => [Q_f], "p_g" => [p_g],
-        "p_f" => [p_f], "n" => [n], "rejects_g" => [state.grocery_queue.rejected_shipments.load],
-        "rejects_f" => [state.frozen_queue.rejected_shipments.load],
-        "finished_g" => [state.processed_groceries.load],
-        "finished_f" => [state.processed_frozen.load], "duration" => [duration],
-        "worker_util" => [if !isempty(workers)
+        "p_f" => [p_f], "n" => [n], "total_rejects_g" => [state.grocery_queue.rejected_shipments.load],
+        "total_rejects_f" => [state.frozen_queue.rejected_shipments.load],
+        "total_finished_g" => [state.processed_groceries.load],
+        "total_finished_f" => [state.processed_frozen.load], "duration" => [duration],
+        "worker_util_rate" => [if !isempty(workers)
             mean(w.working_time for w in workers) / duration
         else
             0
