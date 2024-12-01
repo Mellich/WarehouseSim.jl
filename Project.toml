@@ -1,0 +1,18 @@
+name = "WarehouseSim"
+uuid = "273c2875-4a69-45a0-9a4a-5641b26916d0"
+authors = ["Marius Meyer <marius-meyer@hotmail.com>"]
+version = "0.1.0"
+
+[deps]
+ConcurrentSim = "6ed1e86c-fcaf-46a9-97e0-2b26a2cdb499"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+ResumableFunctions = "c5292f4c-5179-55e1-98c5-05642aab7184"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[compat]
+ConcurrentSim = "1.5.0"
+Distributions = "0.25.113"
+Logging = "1.11.0"
+ResumableFunctions = "1.0.1"
+Test = "1.11.0"
