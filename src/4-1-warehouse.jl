@@ -276,10 +276,11 @@ function simulate_warehouse_queue(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
     finalize!.(workers)
     finalize!(state)
     DataFrame(Dict("λ_g" => [λ_g], "λ_f" => [λ_f], "Q_g" => [Q_g], "Q_f" => [Q_f], "p_g" => [p_g],
-        "p_f" => [p_f], "n" => [n], "total_rejects_g" => [state.grocery_queue.rejected_shipments.load],
+        "p_f" => [p_f], "num_workers" => [n], "duration" => [duration],
+        "total_rejects_g" => [state.grocery_queue.rejected_shipments.load],
         "total_rejects_f" => [state.frozen_queue.rejected_shipments.load],
         "total_finished_g" => [state.processed_groceries.load],
-        "total_finished_f" => [state.processed_frozen.load], "duration" => [duration],
+        "total_finished_f" => [state.processed_frozen.load],
         "worker_util_rate" => [if !isempty(workers)
             mean(w.working_time for w in workers) / duration
         else
