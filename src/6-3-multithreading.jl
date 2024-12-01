@@ -42,17 +42,15 @@ resulting in a total of 6 simulation runs.
 
 """
 function simulate_parametrized(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
-    df = DataFrame()
-    # Lock to synchronize aggregation of partial results for each simulation run
-    df_lock = Threads.Condition()
+    # Create a DataFrame for each thread to reduce synchronization overhead
+    df_threads = [DataFrame() for _ in 1:Threads.nthreads()]
     # Get all combinations of input parameters
     # and execute simulations over all available threads
-    # Use dynamic scheduling to improve load balancing
+    # Ensure dynamic scheduling to improve load balancing
     Threads.@threads :dynamic for (λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration) in collect(Iterators.product(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration))
         df_part = simulate_warehouse_queue(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
-        Threads.lock(df_lock)
-        append!(df, df_part)
-        Threads.unlock(df_lock)
+        append!(df_threads[Threads.threadid()], df_part)
     end
-    df
+    # Reduce collected data to single DataFrame after all threads have completed
+    reduce(vcat, df_threads)
 end
