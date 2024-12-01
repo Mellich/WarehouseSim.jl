@@ -5,6 +5,7 @@ using DataFrames
 using Distributions
 using Logging
 using ResumableFunctions
+using Statistics
 using Base: put!, take!, length
 
 mutable struct Shipment
@@ -187,9 +188,19 @@ function simulate_warehouse_queue(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
     run(sim, duration)
     finalize!.(workers)
     finalize!(state)
-    state, workers
+    DataFrame(Dict("λ_g" => [λ_g], "λ_f" => [λ_f], "Q_g" => [Q_g], "Q_f" => [Q_f], "p_g" => [p_g],
+        "p_f" => [p_f], "n" => [n], "rejects_g" => [state.grocery_queue.rejected_shipments.load],
+        "rejects_f" => [state.frozen_queue.rejected_shipments.load],
+        "worker_util" => [mean(w.working_time for w in workers) / duration],
+        "avg_wait_g" => [mean(s.start_processing - s.arrival_time for (s, _) in state.processed_groceries.items)],
+        "avg_wait_f" => [mean(s.start_processing - s.arrival_time for (s, _) in state.processed_frozen.items)],
+        "full_rate_g" => [state.grocery_queue.full_time / duration],
+        "full_rate_f" => [state.frozen_queue.full_time / duration],
+        "empty_rate_g" => [state.grocery_queue.empty_time / duration],
+        "empty_rate_f" => [state.frozen_queue.empty_time / duration]))
 end
 
 export simulate_warehouse_queue
-export is_full, length, put!, take!
+export is_full, is_empty, length, put!, take!
+export Worker, Shipment, ShipmentQueue, WarehouseState
 end
