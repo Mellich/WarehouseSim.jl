@@ -44,3 +44,10 @@ using WarehouseSim
 visualize_plot(simulate_parametrized([0.5, 4, 2], 4, 1, 2, 10, 100, 8, 100:200))
 ```
 
+## Example Script
+
+An example script is provided in `example/simulate.jl`.
+Execute the simulations with 4 threads and plot results:
+
+    cd example
+    julia --project -t 4 -i simulate.jl
