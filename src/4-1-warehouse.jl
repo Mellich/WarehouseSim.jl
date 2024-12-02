@@ -3,7 +3,6 @@
 #
 ##
 
-
 """
 Represents a shipment in the warehouse simulation.
 
@@ -50,7 +49,7 @@ function finalize!(w::Worker)
 end
 
 """
-Warehouse queue sued in the simulation to represent
+Warehouse queue used in the simulation to represent
 incoming groceries or frozen goods.
 
     ShipmentQueue(λ, Q_max)
@@ -165,11 +164,19 @@ function finalize!(q::ShipmentQueue)
     end
 end
 
+"""
+Data structure representing the simulated warehouse
+consisting of two ShipmentQueues for groceries and frozen goods.
+
+Also contains additional stores for processed items.
+"""
 struct WarehouseState
     grocery_queue::ShipmentQueue
     frozen_queue::ShipmentQueue
     processed_groceries::Store{Shipment}
     processed_frozen::Store{Shipment}
+    # Used to notify workers for new shipments
+    # in one of the queues
     avaliable_shipments::Store{Nothing}
 
     function WarehouseState(sim, λ_g, λ_f, Q_g, Q_f)
@@ -223,28 +230,33 @@ end
     worker_process(sim::Simulation, warehouse_state::WarehouseState,
                     worker::Worker, p_g, p_f)
 
-Simulation process used to simulate worker behavior
+Simulation process used to simulate worker behavior.
 """
 @resumable function worker_process(sim::Simulation, warehouse_state::WarehouseState, worker::Worker, p_g, p_f)
     while true
         @debug "T $(now(sim)): $worker waits for items"
+        # get notified by queues if new shipment arrives
         @yield take!(warehouse_state.avaliable_shipments)
-        start_time = now(sim)
         @debug "T $(now(sim)): $worker starts processing"
-        if (length(warehouse_state.grocery_queue) > length(warehouse_state.frozen_queue))
+        from_groceries = true
+        # select shipment and processing time based on longest queue
+        process_time = if (length(warehouse_state.grocery_queue) > length(warehouse_state.frozen_queue))
             worker.current_shipment = @yield take!(warehouse_state.grocery_queue)
-            worker.current_shipment.start_processing = now(sim)
-            @yield timeout(sim, rand(Exponential(p_g)))
-            worker.current_shipment.end_processing = now(sim)
-            put!(warehouse_state.processed_groceries, worker.current_shipment)
+            rand(Exponential(p_g))
         else
             worker.current_shipment = @yield take!(warehouse_state.frozen_queue)
-            worker.current_shipment.start_processing = now(sim)
-            @yield timeout(sim, rand(Exponential(p_f)))
-            worker.current_shipment.end_processing = now(sim)
+            from_groceries = false
+            rand(Exponential(p_f))
+        end
+        worker.current_shipment.start_processing = now(sim)
+        worker.current_shipment.end_processing = now(sim) + process_time
+        @yield timeout(sim, process_time)
+        worker.working_time += process_time
+        if from_groceries
+            put!(warehouse_state.processed_groceries, worker.current_shipment)
+        else
             put!(warehouse_state.processed_frozen, worker.current_shipment)
         end
-        worker.working_time += now(sim) - start_time
     end
 end
 
@@ -275,6 +287,7 @@ function simulate_warehouse_queue(λ_g, λ_f, p_g, p_f, Q_g, Q_f, n, duration)
     run(sim, duration)
     finalize!.(workers)
     finalize!(state)
+    # create dataframe with configuration and statistics
     DataFrame(Dict("λ_g" => [λ_g], "λ_f" => [λ_f], "Q_g" => [Q_g], "Q_f" => [Q_f], "p_g" => [p_g],
         "p_f" => [p_f], "num_workers" => [n], "duration" => [duration],
         "total_rejects_g" => [state.grocery_queue.rejected_shipments.load],
