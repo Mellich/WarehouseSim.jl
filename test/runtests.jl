@@ -37,8 +37,8 @@ end
 @testset "Simple test run of simulation and basic sanity checks of output data." begin
     df = simulate_warehouse_queue(1, 1, 1, 1, 10, 10, 2, 20)
     @test typeof(df) == DataFrame
-    @test first(df.n) == 2
-    @test 0.0 <= first(df.worker_util) <= 1.0
+    @test first(df.num_workers) == 2
+    @test 0.0 <= first(df.worker_util_rate) <= 1.0
     @test 0.0 <= first(df.full_rate_g) <= 1.0
     @test 0.0 <= first(df.full_rate_f) <= 1.0
     @test 0.0 <= first(df.empty_rate_g) <= 1.0
